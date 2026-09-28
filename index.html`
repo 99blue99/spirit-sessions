@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Spirit Sessions Attendance</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css">
+<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --bg-color-1: #EEF2FF;
+  --bg-color-2: #E0E7FF;
+  --bg-color-3: #C7D2FE;
+  --surface: rgba(255, 255, 255, 0.7);
+  --text-main: #1A1C1E;
+  --text-muted: #64748B;
+  --accent: #7C3AED;
+  --accent-hover: #6D28D9;
+  --accent-glow: rgba(124, 58, 237, 0.4);
+  --border: rgba(255, 255, 255, 0.4);
+  --danger: #EF4444;
+  --success: #10B981;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-color-1: #0F172A;
+    --bg-color-2: #1E293B;
+    --bg-color-3: #334155;
+    --surface: rgba(30, 41, 59, 0.7);
+    --text-main: #F1F5F9;
+    --text-muted: #94A3B8;
+    --accent: #A78BFA;
+    --accent-hover: #C4B5FD;
+    --accent-glow: rgba(167, 139, 250, 0.4);
+    --border: rgba(255, 255, 255, 0.1);
+    --danger: #F87171;
+    --success: #34D399;
+    --shadow: rgba(0, 0, 0, 0.4);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg-color-1: #0F172A;
+  --bg-color-2: #1E293B;
+  --bg-color-3: #334155;
+  --surface: rgba(30, 41, 59, 0.7);
+  --text-main: #F1F5F9;
+  --text-muted: #94A3B8;
+  --accent: #A78BFA;
+  --accent-hover: #C4B5FD;
+  --accent-glow: rgba(167, 139, 250, 0.4);
+  --border: rgba(255, 255, 255, 0.1);
+  --danger: #F87171;
+  --success: #34D399;
+  --shadow: rgba(0, 0, 0, 0.4);
+}
+
+* { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+body {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+  min-height: 100vh;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-main);
+  background: linear-gradient(-45deg, var(--bg-color-1), var(--bg-color-2), var(--bg-color-3));
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.app-container { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 1.5rem; }
+header { text-align: center; margin-bottom: 1rem; }
+h1 { font-weight: 800; font-size: 2.5rem; margin: 0; color: var(--accent); text-wrap: balance; text-shadow: 0 2px 10px var(--shadow); }
+.subtitle { color: var(--text-muted); font-size: 1.1rem; }
+
+.card {
+  background-color: var(--surface);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px 0 var(--shadow);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.full-width { grid-column: span 2; }
+.field { display: flex; flex-direction: column; gap: 0.5rem; }
+label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-left: 4px; }
+
+input, select {
+  background: rgba(255, 255, 255, 0.4);
+  border: 2px solid var(--border);
+  color: var(--text-main);
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  padding: 0.8rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+
+button {
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary {
+  background-color: var(--accent);
+  color: white;
+  padding: 1rem;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 15px var(--accent-glow);
+}
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--accent-glow);
+}
+
+.btn-success {
+  background-color: var(--success);
+  color: white;
+  padding: 1rem;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+.btn-success:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.view {
+  display: none;
+  animation: viewTransition 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.view.active { display: flex; flex-direction: column; gap: 1.5rem; }
+
+@keyframes viewTransition {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.user-welcome {
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 10px 20px var(--accent-glow);
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.user-welcome h3 { margin: 0; font-size: 1.4rem; }
+.user-welcome p { margin: 0.5rem 0 0; opacity: 0.9; font-family: 'JetBrains Mono', monospace; }
+
+.attendees-list { border-top: 1px solid var(--border); padding-top: 1.5rem; }
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  opacity: 0;
+  transform: translateX(-10px);
+  animation: slideIn 0.4s forwards;
+}
+@keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+
+.nav-bar { display: flex; justify-content: center; gap: 1.5rem; margin-top: 1rem; }
+.nav-btn {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+.nav-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-glow); }
+
+.session-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: all 0.3s ease;
+}
+.status-dot.active {
+  background: var(--success);
+  box-shadow: 0 0 12px var(--success);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.3);
+  padding: 1.2rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+}
+.filter-row { display: flex; align-items: center; gap: 1rem; }
+.filter-row label { min-width: 130px; margin-bottom: 0; }
+
+.count-badge {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--accent);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  box-shadow: 0 2px 5px var(--accent-glow);
+}
+
+/* Custom Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+.modal-card {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 20px 50px var(--shadow);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.modal-btns { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
+.modal-btn { padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
+/* Grid.js Customization */
+.gridjs-container {
+  background: transparent !important;
+  color: var(--text-main) !important;
+}
+.gridjs-wrapper {
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+.gridjs-th {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: var(--text-muted) !important;
+  font-family: 'Outfit', sans-serif !important;
+}
+.gridjs-td {
+  background: transparent !important;
+  color: var(--text-main) !important;
+  font-family: 'Outfit', sans-serif !important;
+}
+.btn-delete-grid {
+  background: transparent;
+  color: var(--danger);
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-delete-grid:hover { background: var(--danger); color: white; }
+
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <header>
+    <h1>Spirit Sessions</h1>
+    <div class="subtitle">Attendance & Community Tracking (Cloud Sync)</div>
+  </header>
+
+  <!-- VIEW 1: CHECK-IN -->
+  <div id="view-checkin" class="view active">
+    <div class="session-status">
+      <div id="statusDot" class="status-dot"></div>
+      <span id="statusText">Session not started</span>
+    </div>
+
+    <div id="checkinCard" class="card" style="display:none;">
+      <div class="form-grid">
+        <div class="field">
+          <label>First Name</label>
+          <input type="text" id="firstName" placeholder="Enter first name..." spellcheck="false">
+        </div>
+        <div class="field">
+          <label>Last Name</label>
+          <input type="text" id="lastName" placeholder="Enter last name..." spellcheck="false">
+        </div>
+        <div class="field">
+          <label>Grade Level</label>
+          <select id="gradeLevel">
+            <option value="9">9th Grade</option>
+            <option value="10">10th Grade</option>
+            <option value="11">11th Grade</option>
+            <option value="12">12th Grade</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>School</label>
+          <select id="school">
+            <option value="Citrus Valley">Citrus Valley</option>
+            <option value="Redlands">Redlands</option>
+            <option value="Redlands East Valley">Redlands East Valley</option>
+            <option value="San Gorgonio">San Gorgonio</option>
+            <option value="Indian Springs">Indian Springs</option>
+            <option value="Middle College">Middle College</option>
+            <option value="Pacific">Pacific</option>
+            <option value="Yucaipa">Yucaipa</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-primary" id="checkInBtn">Check In Now</button>
+    </div>
+
+    <div id="welcomeSection" style="display:none;">
+      <div class="user-welcome">
+        <h3 id="welcomeName">Welcome back!</h3>
+        <p id="welcomeStats">You've attended 0 sessions.</p>
+      </div>
+    </div>
+
+    <div class="card attendees-list">
+      <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Who's here today?</h2>
+      <div id="todayList"></div>
+    </div>
+  </div>
+
+  <!-- VIEW 2: ADMIN/HISTORY -->
+  <div id="view-history" class="view">
+    <div class="card">
+      <h2 style="margin-top:0;">Session Control</h2>
+      <div class="form-grid">
+        <div class="field full-width">
+          <label>Set Session Date</label>
+          <input type="date" id="sessionDatePicker">
+        </div>
+        <button class="btn-success" id="startDayBtn">Start Session</button>
+        <button class="btn-primary" id="endDayBtn" style="background-color: var(--text-muted);">End & Report</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Attendance Reports</h2>
+
+      <div class="filter-group">
+        <div class="filter-row">
+          <label>Filter by School:</label>
+          <select id="schoolFilter">
+            <option value="all">All Schools</option>
+            <option value="Citrus Valley">Citrus Valley</option>
+            <option value="Redlands">Redlands</option>
+            <option value="Redlands East Valley">Redlands East Valley</option>
+            <option value="San Gorgonio">San Gorgonio</option>
+            <option value="Indian Springs">Indian Springs</option>
+            <option value="Middle College">Middle College</option>
+            <option value="Pacific">Pacific</option>
+            <option value="Yucaipa">Yucaipa</option>
+          </select>
+        </div>
+        <div class="filter-row">
+          <label>Filter by Date:</label>
+          <input type="date" id="dateFilter">
+          <button class="nav-btn" id="clearFilters" style="text-decoration:none; padding: 2px 8px;">Clear</button>
+        </div>
+      </div>
+
+      <div id="historyGrid" style="margin-top: 1.5rem;"></div>
+      <button class="btn-primary" style="background: var(--danger); margin-top: 1.5rem;" id="clearAllBtn">Reset All Data</button>
+    </div>
+  </div>
+
+  <div class="nav-bar">
+    <button class="nav-btn" id="navCheckin">Check-In</button>
+    <button class="nav-btn" id="navHistory">Admin History</button>
+  </div>
+</div>
+
+<!-- MODAL SYSTEM -->
+<div id="modalOverlay" class="modal-overlay">
+  <div class="modal-card">
+    <h3 id="modalTitle">Alert</h3>
+    <p id="modalMessage"></p>
+    <div class="modal-btns" id="modalBtns"></div>
+  </div>
+</div>
+
+<script>
+  // SUPABASE CONFIG
+  const SUPABASE_URL = 'https://ftuyblhhrbozgnhqyspv.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0dXlibGhocmJvemduaHF5c3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NjA1MDQsImV4cCI6MjEwNjEzNjUwNH0.aeh8GqBjv3avXOvzwG7lm6Da-GjLXXVfP-X6r7u-4SA';
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // STATE
+  let currentSessionDate = localStorage.getItem('spirit_current_date') || null;
+  let gridInstance = null;
+
+  // DOM
+  const views = { checkin: document.getElementById('view-checkin'), history: document.getElementById('view-history') };
+  const fields = { first: document.getElementById('firstName'), last: document.getElementById('lastName'), grade: document.getElementById('gradeLevel'), school: document.getElementById('school') };
+  const welcomeSection = document.getElementById('welcomeSection');
+  const welcomeName = document.getElementById('welcomeName');
+  const welcomeStats = document.getElementById('welcomeStats');
+  const todayList = document.getElementById('todayList');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const checkinCard = document.getElementById('checkinCard');
+  const schoolFilter = document.getElementById('schoolFilter');
+  const dateFilter = document.getElementById('dateFilter');
+
+  // MODAL SYSTEM
+  async function showModal(title, message, options = { type: 'alert' }) {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('modalOverlay');
+      const titleEl = document.getElementById('modalTitle');
+      const msgEl = document.getElementById('modalMessage');
+      const btnContainer = document.getElementById('modalBtns');
+
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+      btnContainer.innerHTML = '';
+      overlay.style.display = 'flex';
+
+      if (options.type === 'confirm') {
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'modal-btn nav-btn';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.onclick = () => { overlay.style.display = 'none'; resolve(false); };
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'modal-btn btn-primary';
+        confirmBtn.textContent = 'Confirm';
+        confirmBtn.onclick = () => { overlay.style.display = 'none'; resolve(true); };
+
+        btnContainer.appendChild(cancelBtn);
+        btnContainer.appendChild(confirmBtn);
+      } else {
+        const okBtn = document.createElement('button');
+        okBtn.className = 'modal-btn btn-primary';
+        okBtn.textContent = 'OK';
+        okBtn.onclick = () => { overlay.style.display = 'none'; resolve(true); };
+        btnContainer.appendChild(okBtn);
+      }
+    });
+  }
+
+  async function promptPassword(title, message) {
+    const pass = prompt(title + ': ' + message);
+    return pass;
+  }
+
+  function updateStatus() {
+    if (currentSessionDate) {
+      statusDot.classList.add('active');
+      statusText.textContent = `Session Active: ${currentSessionDate}`;
+      checkinCard.style.display = 'flex';
+    } else {
+      statusDot.classList.remove('active');
+      statusText.textContent = 'Session not started - please see admin';
+      checkinCard.style.display = 'none';
+    }
+  }
+
+  async function checkIn() {
+    if (!currentSessionDate) {
+      await showModal('Session Inactive', 'Session has not been started by an admin yet!');
+      return;
+    }
+
+    const first = fields.first.value.trim();
+    const last = fields.last.value.trim();
+    const grade = fields.grade.value;
+    const school = fields.school.value;
+
+    if (!first || !last) {
+      await showModal('Missing Info', 'Please enter both first and last name!');
+      return;
+    }
+
+    const studentKey = `${first.trim().toLowerCase()}|${last.trim().toLowerCase()}|${grade.trim()}|${school.trim().toLowerCase()}`;
+
+    // 1. Check if student exists in Supabase
+    let { data: student, error } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('student_key', studentKey)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      await showModal('Error', 'Database error during check-in.');
+      return;
+    }
+
+    let dates = [];
+    if (student) {
+      dates = student.dates || [];
+    }
+
+    if (dates.includes(currentSessionDate)) {
+      await showModal('Already Checked In', 'You have already checked in for this session!');
+      return;
+    }
+
+    // 2. Update or Insert student
+    dates.push(currentSessionDate);
+    if (student) {
+      await supabase.from('attendance').update({ dates }).eq('id', student.id);
+    } else {
+      await supabase.from('attendance').insert([
+        { student_key: studentKey, pretty_name: `${first} ${last}`, grade, school, dates }
+      ]);
+    }
+
+    render();
+
+    fields.first.value = '';
+    fields.last.value = '';
+    fields.first.focus();
+
+    welcomeSection.style.display = 'block';
+    welcomeName.textContent = `Welcome back, ${first} ${last}!`;
+    welcomeStats.textContent = `You've attended ${dates.length} session${dates.length > 1 ? 's' : ''}.`;
+  }
+
+  async function render() {
+    todayList.innerHTML = '';
+
+    // Fetch only students who attended today
+    const { data: todayPeople, error } = await supabase
+      .from('attendance')
+      .select('*')
+      .filter('dates', 'cs', `{${currentSessionDate}}`); // Postgres array contains filter
+
+    if (error) {
+      console.error('Fetch error:', error);
+      return;
+    }
+
+    if (!todayPeople || todayPeople.length === 0) {
+      todayList.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-style:italic; padding: 1rem;">No one has checked in for this session yet.</div>';
+    } else {
+      todayPeople.forEach((user, index) => {
+        const row = document.createElement('div');
+        row.className = 'list-item';
+        row.style.animationDelay = `${index * 0.05}s`;
+        row.innerHTML = `<span>${user.pretty_name} (${user.school})</span> <span class="count-badge">${user.dates.length}</span>`;
+        todayList.appendChild(row);
+      });
+    }
+
+    renderHistory();
+  }
+
+  async function getGridData() {
+    const selectedSchool = schoolFilter.value;
+    const selectedDate = dateFilter.value;
+
+    let { data: entries, error } = await supabase.from('attendance').select('*');
+    if (error) return [];
+
+    return entries
+      .filter(user => {
+        const schoolMatch = selectedSchool === 'all' || user.school === selectedSchool;
+        const dateMatch = !selectedDate || (user.dates && user.dates.includes(selectedDate));
+        return schoolMatch && dateMatch;
+      })
+      .map(user => [
+        user.pretty_name,
+        user.school,
+        user.grade,
+        user.dates ? user.dates.length : 0,
+        gridjs.html(`<button class="btn-delete-grid" onclick="deleteUser('${user.student_key}')">Remove</button>`)
+      ]);
+  }
+
+  async function renderHistory() {
+    const data = await getGridData();
+    if (!gridInstance) {
+      gridInstance = new gridjs.Grid({
+        columns: ['Student', 'School', 'Grade', 'Visits', 'Action'],
+        data: data,
+        sort: true,
+        search: true,
+        pagination: { limit: 10 },
+        style: {
+          table: { 'font-family': 'Outfit, sans-serif' }
+        }
+      }).render(document.getElementById('historyGrid'));
+    } else {
+      gridInstance.updateConfig({ data: data }).forceRender();
+    }
+  }
+
+  async function deleteUser(key) {
+    const pass = await promptPassword('Admin Access Required', 'Enter password to remove one visit:');
+    if (pass === '0217') {
+      const { data: user, error } = await supabase.from('attendance').select('*').eq('student_key', key).single();
+      if (user && user.dates && user.dates.length > 0) {
+        const confirmed = await showModal('Remove Visit', `Remove one visit for ${user.pretty_name}? (Current: ${user.dates.length})`, { type: 'confirm' });
+        if (confirmed) {
+          const newDates = [...user.dates];
+          newDates.pop(); // Remove most recent
+          if (newDates.length === 0) {
+            await supabase.from('attendance').delete().eq('id', user.id);
+          } else {
+            await supabase.from('attendance').update({ dates: newDates }).eq('id', user.id);
+          }
+          render();
+        }
+      }
+    } else if (pass !== null) {
+      await showModal('Access Denied', 'Incorrect password.');
+    }
+  }
+
+  function switchView(viewName) {
+    Object.values(views).forEach(v => v.classList.remove('active'));
+    views[viewName].classList.add('active');
+  }
+
+  document.getElementById('checkInBtn').addEventListener('click', checkIn);
+
+  document.getElementById('startDayBtn').addEventListener('click', async () => {
+    const dateVal = document.getElementById('sessionDatePicker').value;
+    if (!dateVal) {
+      await showModal('Error', 'Please select a date first!');
+      return;
+    }
+    currentSessionDate = dateVal;
+    localStorage.setItem('spirit_current_date', currentSessionDate);
+    updateStatus();
+    render();
+    await showModal('Success', `Session started for ${dateVal}`);
+  });
+
+  document.getElementById('endDayBtn').addEventListener('click', async () => {
+    if (!currentSessionDate) {
+      await showModal('Error', 'No active session to end!');
+      return;
+    }
+
+    const { data: todayPeople } = await supabase
+      .from('attendance')
+      .select('*')
+      .filter('dates', 'cs', `{${currentSessionDate}}`);
+
+    const report = todayPeople.map(u => `${u.pretty_name} (${u.school})`).join('\\n');
+
+    await showModal('Session Report', `--- Session Report for ${currentSessionDate} ---\\n\\nTotal Attendance: ${todayPeople.length}\\n\\nStudents:\\n${report || 'No one attended.'}`);
+
+    currentSessionDate = null;
+    localStorage.removeItem('spirit_current_date');
+    updateStatus();
+    render();
+    welcomeSection.style.display = 'none';
+  });
+
+  document.getElementById('navCheckin').addEventListener('click', () => {
+    switchView('checkin');
+    welcomeSection.style.display = 'none';
+  });
+  document.getElementById('navHistory').addEventListener('click', () => switchView('history'));
+
+  document.getElementById('clearAllBtn').addEventListener('click', async () => {
+    const pass = await promptPassword('Admin Access Required', 'Please enter the password to erase all data:');
+    if (pass === '0217') {
+      const confirmed = await showModal('DANGER', 'ERASE ALL DATA? This will permanently delete every single visit record.', { type: 'confirm' });
+      if (confirmed) {
+        const { error } = await supabase.from('attendance').delete().neq('id', 0);
+        if (!error) {
+          currentSessionDate = null;
+          localStorage.removeItem('spirit_current_date');
+          updateStatus();
+          render();
+        }
+      }
+    } else if (pass !== null) {
+      await showModal('Access Denied', 'Incorrect password. Access denied.');
+    }
+  });
+
+  schoolFilter.addEventListener('change', renderHistory);
+  dateFilter.addEventListener('change', renderHistory);
+  document.getElementById('clearFilters').addEventListener('click', () => {
+    schoolFilter.value = 'all';
+    dateFilter.value = '';
+    renderHistory();
+  });
+
+  document.getElementById('sessionDatePicker').value = new Date().toISOString().split('T')[0];
+  updateStatus();
+  render();
+</script>
+</body>
+</html>
